@@ -2,6 +2,7 @@ var canvas = document.getElementById("myCanvas")
 var ctx = canvas.getContext("2d")
 
 var frames = 0
+var Degree = Math.PI/180
 
 var sprite = new Image();
 sprite.src = "img/i2.png";
@@ -24,6 +25,9 @@ function clickHandler(){
                 bird.flap()
                 break;
         default:
+            bird.rotation = 0
+            bird.speed = 0
+            pipes.position =[]
             s.cr = s.getReady
             break;
     }
@@ -56,9 +60,13 @@ var fg ={
     h : 135,
     x : 0,
     y : canvas.height - 135,
+    dx : 2,
     draw : function(){
         ctx.drawImage(sprite,this.sX,this.sY,this.w,this.h,this.x,this.y,this.w,this.h)
         ctx.drawImage(sprite,this.sX,this.sY,this.w,this.h,this.x + this.w - 7,this.y,this.w,this.h)
+    },
+    update : function(){
+        this.x = (this.x - this.dx) % (this.w/2 - 15)
     }
 }
 
@@ -119,6 +127,60 @@ var gameOver2 ={
     }
 }
 
+var pipes ={
+    top:{
+        sX: 5,
+        sY: 0,
+        h: 100
+
+    },
+    bottom:{
+        sX: 85,
+        sY: 0,
+        h:60
+    },
+    w:75,
+    dx:2,
+    gap:80,
+    position:[],
+    maxYpos: 150,
+   draw : function () {
+    for (let i = 0; i < this.position.length; i++) {
+         var p = this.position[i];
+         var TopP = p.y;
+         var bottomY =  this.gap + 50 + p.y
+
+         ctx.drawImage(sprite,this.top.sX,this.top.sY,this.w,this.top.h,p.x,0,this.w,TopP-this.gap)
+         ctx.drawImage(sprite,this.bottom.sX,this.bottom.sY,this.w,this.bottom.h,p.x,bottomY - 50,this.w,bottomY)
+         
+    }
+   },
+   
+   update : function (){
+    if(s.cr != s.game)return;
+    if(frames % 100 == 0){
+        this.position.push({
+            x:canvas.width,
+            y:this.maxYpos * (Math.random()+1)
+        })
+    }
+    for (let i = 0; i < this.position.length; i++) {
+        var p = this.position[i]  
+        p.x -= this.dx     
+        
+        
+        if(p.x + this.w < 0 ){
+            this.position.shift()
+        }
+    }
+   }
+
+   
+}
+
+
+
+
 var bird ={
     animate:[
         {sX : 875 , sY : 10},
@@ -131,24 +193,52 @@ var bird ={
     x : 20,
     y : 90,
     animationIndex : 0,
+    speed : 0,
+    gravity : 0.25,
+    jump: 4.6,
+    rotation:0,
     draw : function(){
-       
         var bird = this.animate[this.animationIndex]
+       
+        ctx.save()
+        ctx.translate(this.x ,this.y)
+        ctx.rotate(this.rotation)
         if(s.cr == s.game){
-        ctx.drawImage(sprite,bird.sX,bird.sY,this.w,this.h,this.x,this.y,this.w,this.h)}
+        ctx.drawImage(sprite,bird.sX,bird.sY,this.w,this.h,-this.w/2 +15,-this.h/2,this.w,this.h)}
+        ctx.restore()
     },
     updadeBird : function(){
         this.animationIndex += frames % 5 == 0 ? 1 : 0;
         this.animationIndex = this.animationIndex % this.animate.length
+
+        if(s.cr == s.game){
+            this.speed += this.gravity;
+            this.y += this.speed
+
+            if (this.speed < this.jump) {
+                this.rotation = -25 * Degree
+            }else{
+                this.rotation = 90 * Degree
+            }
+        }
+
+        if(this.y + this.h/2 > canvas.height - fg.h ){
+            this.y =  canvas.height - fg.h - this.h/2
+            if (s.cr == s.game) {
+                s.cr = s.gover
+            }
+        }
     }, 
     flap : function(){
-
+        this.speed -= this.jump
     }
 }
 
 function update(){
 
     bird.updadeBird()
+    fg.update()
+    pipes.update()
 }
 
 
@@ -157,6 +247,7 @@ ctx.fillStyle = "#70c5ce"
 ctx.fillRect(0,0,canvas.width , canvas.height)
 bg.draw()
 fg.draw()
+pipes.draw()
 bird.draw()
 getReady.draw()
 getReady2.draw()

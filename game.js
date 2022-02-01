@@ -7,6 +7,20 @@ var Degree = Math.PI/180
 var sprite = new Image();
 sprite.src = "img/i2.png";
 
+var sprite2 = new Image();
+sprite2.src = "img/image-15.png";
+
+var Score = new Audio()
+Score.src = "./sound/score.mp3"
+
+var die = new Audio()
+die.src = "./sound/die.mp3"
+
+var wing = new Audio()
+wing.src = "./sound/wing.mp3"
+
+var fail = new Audio()
+fail.src = "./sound/fail.mp3"
 
 var s = {
    
@@ -22,11 +36,13 @@ function clickHandler(){
             s.cr = s.game
             break;
         case s.game:
+                wing.play()
                 bird.flap()
                 break;
         default:
             bird.rotation = 0
             bird.speed = 0
+            score.value = 0
             pipes.position =[]
             s.cr = s.getReady
             break;
@@ -129,30 +145,30 @@ var gameOver2 ={
 
 var pipes ={
     top:{
-        sX: 5,
-        sY: 0,
-        h: 100
+        sX: 505,
+        sY: 160,
+       
 
     },
     bottom:{
-        sX: 85,
-        sY: 0,
-        h:60
+        sX: 597 ,
+        sY: 60,
+     
     },
     w:75,
     dx:2,
     gap:80,
+    h:400,
     position:[],
-    maxYpos: 150,
+    maxYpos: -150,
    draw : function () {
     for (let i = 0; i < this.position.length; i++) {
          var p = this.position[i];
          var TopP = p.y;
-         var bottomY =  this.gap + 50 + p.y
+         var bottomY =  this.gap + this.h + p.y
 
-         ctx.drawImage(sprite,this.top.sX,this.top.sY,this.w,this.top.h,p.x,0,this.w,TopP-this.gap)
-         ctx.drawImage(sprite,this.bottom.sX,this.bottom.sY,this.w,this.bottom.h,p.x,bottomY - 50,this.w,bottomY)
-         
+         ctx.drawImage(sprite2,this.top.sX,this.top.sY,this.w,this.h,p.x,TopP,this.w,this.h )
+         ctx.drawImage(sprite2,this.bottom.sX,this.bottom.sY,this.w,this.h,p.x,bottomY,this.w,this.h )
     }
    },
    
@@ -168,16 +184,60 @@ var pipes ={
         var p = this.position[i]  
         p.x -= this.dx     
         
+        var bottomPipes = p.y + this.h + this.gap
+
+        if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w && bird.y + bird.radius > p.y && bird.y - bird.radius < p.y +this.h) {
+           fail.play()
+            s.cr = s.gover
+
+        }
+        if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w && bird.y + bird.radius > bottomPipes && bird.y - bird.radius < bottomPipes +this.h) {
+            fail.play()
+            s.cr = s.gover
+        }
         
         if(p.x + this.w < 0 ){
             this.position.shift()
+           
+            score.value +=1
+             
+            score.best = Math.max(score.value , score.best)
+            localStorage.setItem("best",score.best)
         }
+    
     }
    }
 
    
 }
+var score ={
+    best:parseInt( localStorage.getItem("best"))|| 0,
+    value:0,
 
+    draw:function(){
+        ctx.fillStyle ="#fff",
+        ctx.strokeStyle = "000"
+
+        if(s.cr == s.game){
+            ctx.lineWidth = 2;
+            ctx.font = "35px IMPACT";
+
+            ctx.fillText(this.value , canvas.width/2 , 50)
+            ctx.strokeText(this.value , canvas.width/2 , 50)
+
+
+        }else if(s.cr == s.gover){
+            ctx.lineWidth = 2;
+            ctx.font = "35px IMPACT";
+
+            ctx.fillText(this.value , 150 , 210)
+            ctx.strokeText(this.value , 150 , 210)
+            
+            ctx.fillText(this.best , 150 , 260)
+            ctx.strokeText(this.best , 150 , 260)
+    }
+}
+}
 
 
 
@@ -197,6 +257,7 @@ var bird ={
     gravity : 0.25,
     jump: 4.6,
     rotation:0,
+    radius:17 ,
     draw : function(){
         var bird = this.animate[this.animationIndex]
        
@@ -225,6 +286,7 @@ var bird ={
         if(this.y + this.h/2 > canvas.height - fg.h ){
             this.y =  canvas.height - fg.h - this.h/2
             if (s.cr == s.game) {
+                die.play()
                 s.cr = s.gover
             }
         }
@@ -246,13 +308,14 @@ function draw(){
 ctx.fillStyle = "#70c5ce"
 ctx.fillRect(0,0,canvas.width , canvas.height)
 bg.draw()
-fg.draw()
 pipes.draw()
+fg.draw()
 bird.draw()
 getReady.draw()
 getReady2.draw()
 gameOver.draw()
 gameOver2.draw()
+score.draw()
 }
 
 function animate(){
